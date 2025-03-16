@@ -1,0 +1,65 @@
+adminPassword: changeme  # Change this in a production environment
+persistence:
+  enabled: true
+  size: 10Gi
+nodeSelector:
+  node-type: monitoring
+tolerations:
+- key: "dedicated"
+  operator: "Equal"
+  value: "monitoring"
+  effect: "NoSchedule"
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: "node-type"
+          operator: "In"
+          values:
+          - "monitoring"
+service:
+  type: LoadBalancer
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: Loki
+      type: loki
+      url: http://loki:3100
+      access: proxy
+      isDefault: false
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus-server
+      access: proxy
+      isDefault: true
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      editable: true
+      options:
+        path: /var/lib/grafana/dashboards/default
+dashboards:
+  default:
+    kubernetes-cluster-monitoring:
+      gnetId: 315
+      revision: 3
+      datasource: Prometheus
+    node-exporter:
+      gnetId: 1860
+      revision: 21
+      datasource: Prometheus
