@@ -11,7 +11,8 @@ spec:
     chart: loki
     helm:
       valueFiles:
-      - ../../helm-values/loki/values.yaml
+      # Update this path to match your actual repository and branch
+      - https://raw.githubusercontent.com/will-wright-eng/k8s-prototype-monitoring/main/helm-values/loki/values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring

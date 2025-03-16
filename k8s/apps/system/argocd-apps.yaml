@@ -6,9 +6,11 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/prototype-k8s.git  # Replace with your actual repo
+    # Update this to your actual Git repository URL
+    repoURL: https://github.com/will-wright-eng/k8s-prototype-monitoring.git
     targetRevision: HEAD
-    path: kubernetes/apps/monitoring
+    # Update this path to match your actual repository structure
+    path: k8s/apps/monitoring
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
