@@ -18,6 +18,13 @@ resource "digitalocean_kubernetes_cluster" "main" {
     }
   }
   tags = var.tags
+  # Add validation for minimum node count
+  lifecycle {
+    precondition {
+      condition     = var.primary_node_count >= 1
+      error_message = "Primary node pool must have at least 1 node"
+    }
+  }
 }
 # Adding monitoring node pool
 resource "digitalocean_kubernetes_node_pool" "monitoring" {
@@ -34,6 +41,13 @@ resource "digitalocean_kubernetes_node_pool" "monitoring" {
     key    = "dedicated"
     value  = "monitoring"
     effect = "NoSchedule"
+  }
+  # Add validation for minimum node count
+  lifecycle {
+    precondition {
+      condition     = var.monitoring_node_count >= 1
+      error_message = "Monitoring node pool must have at least 1 node"
+    }
   }
 }
 # Create a local file with kubeconfig
