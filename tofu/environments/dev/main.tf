@@ -21,26 +21,26 @@ provider "digitalocean" {
 }
 
 module "vpc" {
-  source      = "../../modules/vpc"
-  name        = "${var.environment}-vpc"
-  region      = var.region
-  ip_range    = var.vpc_cidr
+  source   = "../../modules/vpc"
+  name     = "${var.environment}-vpc"
+  region   = var.region
+  ip_range = var.vpc_cidr
 }
 
 module "kubernetes" {
-  source              = "../../modules/kubernetes"
-  name                = "${var.environment}-k8s-cluster"
-  region              = var.region
-  vpc_id              = module.vpc.id
-  kubernetes_version  = var.kubernetes_version
+  source             = "../../modules/kubernetes"
+  name               = "${var.environment}-k8s-cluster"
+  region             = var.region
+  vpc_id             = module.vpc.id
+  kubernetes_version = var.kubernetes_version
   # Primary node pool
-  primary_node_count  = var.primary_node_count
-  primary_node_size   = var.primary_node_size
+  primary_node_count = var.primary_node_count
+  primary_node_size  = var.primary_node_size
   # Monitoring node pool
   monitoring_node_count = var.monitoring_node_count
   monitoring_node_size  = var.monitoring_node_size
   # Tags for resource organization
-  tags                = var.tags
+  tags = var.tags
 }
 
 # Configure kubernetes provider with cluster details

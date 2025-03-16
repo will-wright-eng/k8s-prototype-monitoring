@@ -1,0 +1,70 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+default_language_version:
+  python: python3.12
+
+default_stages: [pre-commit, pre-push]
+
+repos:
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.97.0
+    hooks:
+      - id: terraform_fmt
+        args:
+          - --args=-recursive
+          - --args=-diff
+          - --args=-write=true
+        entry: /usr/bin/env bash -c 'tofu fmt -recursive -diff -write=true || true'
+      - id: terraform_validate
+        args:
+          - --args=-json
+          - --args=-no-color
+        entry: /usr/bin/env bash -c 'tofu validate -json -no-color || true'
+      - id: terraform_tflint
+        args:
+          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
+        entry: /usr/bin/env bash -c 'tflint --config=.tflint.hcl || true'
+      - id: terraform_checkov
+        args:
+          - --args=--quiet
+          - --args=--skip-check CKV_GCP_* # Optional: Skip specific checks
+          - --args=--framework terraform
+        entry: /usr/bin/env bash -c 'checkov --quiet --skip-check CKV_GCP_* --framework terraform . || true'
+      - id: terrascan
+        args:
+          - --args=--verbose
+          - --args=--non-recursive
+        entry: /usr/bin/env bash -c 'terrascan scan --verbose --non-recursive || true'
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      # - id: check-yaml
+      #   exclude: ^apps-v2/scripts/oneoff/.*deployment.*\.yaml$
+      #   exclude: ^apps-v2/api-test/k8s/.*\.yaml$
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: detect-private-key
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.44.0
+    hooks:
+    - id: markdownlint
+      args:
+      - --fix
+      verbose: true
+      entry: bash -c 'markdownlint "$@" || true' --
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+    - id: codespell
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        args: [
+          '--severity=warning',  # Minimum severity of issues to display
+          '--shell=bash',       # Specify shell dialect
+          '--color=always'      # Colored output
+        ]

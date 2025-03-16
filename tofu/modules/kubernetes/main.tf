@@ -5,7 +5,7 @@ resource "digitalocean_kubernetes_cluster" "main" {
   vpc_uuid      = var.vpc_id
   auto_upgrade  = false
   surge_upgrade = true
-  ha            = false  # Enable HA for production
+  ha            = false # Enable HA for production
   # Primary node pool
   node_pool {
     name       = "${var.name}-primary"
