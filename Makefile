@@ -3,7 +3,7 @@
 
 # Variables
 ENVIRONMENT ?= dev
-TOFU_DIR = tofu/environments/$(ENVIRONMENT)
+TOFU_DIR = tofu
 K8S_DIR = k8s
 HELM_VALUES_DIR = helm-values
 
@@ -44,11 +44,6 @@ check-token: ## [Setup] Verify DigitalOcean API token is set
 	fi
 	@echo "${GREEN}DigitalOcean token found.${NC}"
 
-init: check-requirements ## [Setup] Initialize Terraform/OpenTofu
-	@echo "${YELLOW}Initializing Terraform/OpenTofu in $(TOFU_DIR)...${NC}"
-	cd $(TOFU_DIR) && tofu init
-	@echo "${GREEN}Initialization complete.${NC}"
-
 setup: check-requirements check-token init apply get-kubeconfig deploy-argocd deploy-monitoring get-endpoints ## [Setup] Full setup - convenience target for initial setup
 	@echo "${GREEN}Setup complete!${NC}"
 	@echo "ArgoCD and monitoring stack have been deployed."
@@ -56,35 +51,34 @@ setup: check-requirements check-token init apply get-kubeconfig deploy-argocd de
 	@echo "Use 'make get-grafana-password' to get the Grafana admin password."
 
 # Infrastructure commands
-plan: check-requirements check-token ## [Infrastructure] Plan infrastructure changes
-	@echo "${YELLOW}Planning infrastructure changes...${NC}"
-	cd $(TOFU_DIR) && tofu plan -var="do_token=$(DO_TOKEN)"
+tofu-init: ## [tofu] initialize terraform
+	@bash scripts/init.sh
 
-apply: check-requirements check-token ## [Infrastructure] Apply infrastructure changes
-	@echo "${YELLOW}Applying infrastructure changes...${NC}"
-	cd $(TOFU_DIR) && tofu apply -auto-approve -var="do_token=$(DO_TOKEN)"
-	@echo "${GREEN}Infrastructure provisioned.${NC}"
+tofu-apply: ## [tofu] apply terraform
+	@bash scripts/apply.sh
+
+tofu-destroy: ## [tofu] destroy terraform
+	@bash scripts/destroy.sh
+
+tofu-plan: ## [tofu] plan terraform changes
+	@bash scripts/plan.sh
 
 # Kubernetes commands
 get-kubeconfig: check-requirements ## [Kubernetes] Get and merge kubeconfig from Terraform output
 	@echo "${YELLOW}Getting kubeconfig from Terraform output...${NC}"
-	mkdir -p $(HOME)/.kube
-	@echo "${YELLOW}Saving cluster config to $(HOME)/.kube/config-$(ENVIRONMENT)...${NC}"
-	cd $(TOFU_DIR) && tofu output -raw kubeconfig > $(HOME)/.kube/config-$(ENVIRONMENT)
-	chmod 600 $(HOME)/.kube/config-$(ENVIRONMENT)
-	@echo "${YELLOW}Merging with existing kubeconfig...${NC}"
-	KUBECONFIG=$(HOME)/.kube/config:$(HOME)/.kube/config-$(ENVIRONMENT) kubectl config view --flatten > $(HOME)/.kube/config.merged
-	mv $(HOME)/.kube/config.merged $(HOME)/.kube/config
-	chmod 600 $(HOME)/.kube/config
-	@echo "${GREEN}Cluster configuration merged into $(HOME)/.kube/config${NC}"
+	mkdir -p $(HOME)/.kube/config.d
+	@echo "${YELLOW}Saving cluster config to $(HOME)/.kube/config.d/config-$(ENVIRONMENT)...${NC}"
+	cluster_name=$(cd $(TOFU_DIR) && tofu output -raw cluster_name)
+	cd $(TOFU_DIR) && tofu output -raw kubeconfig > $(HOME)/.kube/config.d/config-$(cluster_name)
+	chmod 600 $(HOME)/.kube/config.d/config-$(cluster_name)
 	@echo "Test with: kubectl get nodes"
 
-deploy-argocd: check-requirements ## [Kubernetes] Deploy ArgoCD to the cluster
-	@echo "${YELLOW}Deploying ArgoCD to the cluster...${NC}"
-	kubectl apply -f $(K8S_DIR)/bootstrap/argocd/install.yaml
-	@echo "${YELLOW}Waiting for ArgoCD deployment to be ready...${NC}"
-	kubectl -n argocd wait --for=condition=available deployment/argocd-server --timeout=300s
-	@echo "${GREEN}ArgoCD deployed.${NC}"
+# deploy-argocd: check-requirements ## [Kubernetes] Deploy ArgoCD to the cluster
+# 	@echo "${YELLOW}Deploying ArgoCD to the cluster...${NC}"
+# 	kubectl apply -f $(K8S_DIR)/bootstrap/argocd/install.yaml
+# 	@echo "${YELLOW}Waiting for ArgoCD deployment to be ready...${NC}"
+# 	kubectl -n argocd wait --for=condition=available deployment/argocd-server --timeout=300s
+# 	@echo "${GREEN}ArgoCD deployed.${NC}"
 
 deploy-monitoring: check-requirements ## [Kubernetes] Deploy monitoring stack via ArgoCD
 	@echo "${YELLOW}Deploying monitoring stack via ArgoCD...${NC}"
@@ -109,11 +103,11 @@ get-endpoints: check-requirements ## [Access] Get endpoints for ArgoCD and Grafa
 	@echo "ArgoCD URL: http://$(shell kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
 	@echo "Grafana URL: http://$(shell kubectl -n monitoring get svc grafana -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
 
-port-forward-argocd: check-requirements ## [Access] Port forward ArgoCD server to localhost:8080
-	@echo "${YELLOW}Port forwarding ArgoCD server to localhost:8080...${NC}"
-	@echo "${YELLOW}Access ArgoCD UI at: http://localhost:8080${NC}"
-	@echo "${YELLOW}Use Ctrl+C to stop port forwarding${NC}"
-	kubectl port-forward svc/argocd-server -n argocd 8080:80
+# port-forward-argocd: check-requirements ## [Access] Port forward ArgoCD server to localhost:8080
+# 	@echo "${YELLOW}Port forwarding ArgoCD server to localhost:8080...${NC}"
+# 	@echo "${YELLOW}Access ArgoCD UI at: http://localhost:8080${NC}"
+# 	@echo "${YELLOW}Use Ctrl+C to stop port forwarding${NC}"
+# 	kubectl port-forward svc/argocd-server -n argocd 8080:80
 
 # Management commands
 backup-state: ## [Management] Backup Terraform state files
@@ -156,6 +150,12 @@ argo-pf: argo-pass ## [argocd] access ArgoCD UI at http://localhost:8080
 	@echo "Access ArgoCD UI at http://localhost:8080 (username admin)"
 	kubectl port-forward svc/argocd-server -n argocd 8080:443
 
-argo-init: ## [argocd] initialize ArgoCD applications
-	@echo "Initializing ArgoCD applications..."
-	kubectl apply -f argocd/applications/apps.yaml
+argo-uninstall: ## [argocd] uninstall ArgoCD from the cluster
+	@echo "${YELLOW}Uninstalling ArgoCD from the cluster...${NC}"
+	kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+	kubectl delete namespace argocd
+	@echo "${GREEN}ArgoCD has been uninstalled.${NC}"
+
+# argo-init: ## [argocd] initialize ArgoCD applications
+# 	@echo "Initializing ArgoCD applications..."
+# 	kubectl apply -f argocd/applications/apps.yaml
