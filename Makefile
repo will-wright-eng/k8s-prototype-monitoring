@@ -49,6 +49,12 @@ init: check-requirements ## [Setup] Initialize Terraform/OpenTofu
 	cd $(TOFU_DIR) && tofu init
 	@echo "${GREEN}Initialization complete.${NC}"
 
+setup: check-requirements check-token init apply get-kubeconfig deploy-argocd deploy-monitoring get-endpoints ## [Setup] Full setup - convenience target for initial setup
+	@echo "${GREEN}Setup complete!${NC}"
+	@echo "ArgoCD and monitoring stack have been deployed."
+	@echo "Use 'make get-argocd-password' to get the ArgoCD admin password."
+	@echo "Use 'make get-grafana-password' to get the Grafana admin password."
+
 # Infrastructure commands
 plan: check-requirements check-token ## [Infrastructure] Plan infrastructure changes
 	@echo "${YELLOW}Planning infrastructure changes...${NC}"
@@ -134,8 +140,22 @@ clean: ## [Management] Clean local files
 	@echo "${YELLOW}Note: Main ~/.kube/config was preserved. Remove manually if needed.${NC}"
 	@echo "${GREEN}Local files cleaned.${NC}"
 
-setup: check-requirements check-token init apply get-kubeconfig deploy-argocd deploy-monitoring get-endpoints ## [Setup] Full setup - convenience target for initial setup
-	@echo "${GREEN}Setup complete!${NC}"
-	@echo "ArgoCD and monitoring stack have been deployed."
-	@echo "Use 'make get-argocd-password' to get the ArgoCD admin password."
-	@echo "Use 'make get-grafana-password' to get the Grafana admin password."
+#* ArgoCD management
+argo-install: ## [argocd] install ArgoCD in the cluster
+	kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+	kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+	@echo "Waiting for ArgoCD pods to be ready..."
+	kubectl wait --for=condition=available deployment --all -n argocd --timeout=300s
+	@echo "\nArgoCD admin password:"
+	kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+
+argo-pass: ## [argocd] get ArgoCD admin password
+	@kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+
+argo-pf: argo-pass ## [argocd] access ArgoCD UI at http://localhost:8080
+	@echo "Access ArgoCD UI at http://localhost:8080 (username admin)"
+	kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+argo-init: ## [argocd] initialize ArgoCD applications
+	@echo "Initializing ArgoCD applications..."
+	kubectl apply -f argocd/applications/apps.yaml
