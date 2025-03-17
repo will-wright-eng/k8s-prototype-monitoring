@@ -73,13 +73,6 @@ get-kubeconfig: check-requirements ## [Kubernetes] Get and merge kubeconfig from
 	chmod 600 $(HOME)/.kube/config.d/config-$(cluster_name)
 	@echo "Test with: kubectl get nodes"
 
-# deploy-argocd: check-requirements ## [Kubernetes] Deploy ArgoCD to the cluster
-# 	@echo "${YELLOW}Deploying ArgoCD to the cluster...${NC}"
-# 	kubectl apply -f $(K8S_DIR)/bootstrap/argocd/install.yaml
-# 	@echo "${YELLOW}Waiting for ArgoCD deployment to be ready...${NC}"
-# 	kubectl -n argocd wait --for=condition=available deployment/argocd-server --timeout=300s
-# 	@echo "${GREEN}ArgoCD deployed.${NC}"
-
 deploy-monitoring: check-requirements ## [Kubernetes] Deploy monitoring stack via ArgoCD
 	@echo "${YELLOW}Deploying monitoring stack via ArgoCD...${NC}"
 	kubectl apply -f $(K8S_DIR)/apps/monitoring/namespace.yaml
@@ -102,12 +95,6 @@ get-endpoints: check-requirements ## [Access] Get endpoints for ArgoCD and Grafa
 	@echo "${YELLOW}Getting service endpoints...${NC}"
 	@echo "ArgoCD URL: http://$(shell kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
 	@echo "Grafana URL: http://$(shell kubectl -n monitoring get svc grafana -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
-
-# port-forward-argocd: check-requirements ## [Access] Port forward ArgoCD server to localhost:8080
-# 	@echo "${YELLOW}Port forwarding ArgoCD server to localhost:8080...${NC}"
-# 	@echo "${YELLOW}Access ArgoCD UI at: http://localhost:8080${NC}"
-# 	@echo "${YELLOW}Use Ctrl+C to stop port forwarding${NC}"
-# 	kubectl port-forward svc/argocd-server -n argocd 8080:80
 
 # Management commands
 backup-state: ## [Management] Backup Terraform state files
@@ -155,7 +142,3 @@ argo-uninstall: ## [argocd] uninstall ArgoCD from the cluster
 	kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 	kubectl delete namespace argocd
 	@echo "${GREEN}ArgoCD has been uninstalled.${NC}"
-
-# argo-init: ## [argocd] initialize ArgoCD applications
-# 	@echo "Initializing ArgoCD applications..."
-# 	kubectl apply -f argocd/applications/apps.yaml

@@ -1,7 +1,10 @@
 resource "digitalocean_kubernetes_cluster" "cluster" {
-  name    = var.cluster_name
-  region  = var.region
-  version = var.kubernetes_version
+  name          = var.cluster_name
+  region        = var.region
+  version       = var.kubernetes_version
+  auto_upgrade  = false
+  surge_upgrade = true
+  ha            = false # Enable HA for production
 
   node_pool {
     name       = "${var.cluster_name}-worker-pool"
