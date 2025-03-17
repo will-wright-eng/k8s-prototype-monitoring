@@ -14,21 +14,18 @@ spec:
         loki:
           auth_enabled: false
 
+          # Change to single binary mode
+          singleBinary:
+            replicas: 1
+
+          # Remove scalable components configuration
+          # backend, read, and write configs are removed
+
           storage:
             type: filesystem
             filesystem:
               chunks_directory: /var/loki/chunks
               rules_directory: /var/loki/rules
-
-          # Configure Loki's components for scalability
-          backend:
-            replicas: 1
-
-          read:
-            replicas: 1
-
-          write:
-            replicas: 1
 
           limits_config:
             retention_period: 168h  # 7 days

@@ -1,15 +1,16 @@
 # Kubernetes Prototype Design Document
-## DigitalOcean Infrastructure with Terraform, Helm, ArgoCD, and Grafana Stack
+
+## DigitalOcean Infrastructure with OpenTofu, Helm, ArgoCD, and Grafana Stack
 
 ## Executive Summary
 
-This document outlines the design for a prototype Kubernetes cluster on DigitalOcean, incorporating Infrastructure as Code (IaC) with Terraform, application deployment with Helm, GitOps with ArgoCD, and monitoring with the Grafana stack (Grafana, Loki, and Promtail). This prototype will serve as a foundation for a production-ready environment while validating the architectural choices and operational patterns.
+This document outlines the design for a prototype Kubernetes cluster on DigitalOcean, incorporating Infrastructure as Code (IaC) with OpenTofu, application deployment with Helm, GitOps with ArgoCD, and monitoring with the Grafana stack (Grafana, Loki, and Promtail). This prototype will serve as a foundation for a production-ready environment while validating the architectural choices and operational patterns.
 
 ## Architecture Overview
 
 The proposed architecture follows cloud-native and GitOps principles, with infrastructure defined as code, declarative application management, and comprehensive observability. The system consists of four primary components:
 
-1. **Infrastructure Layer** (Terraform + DigitalOcean)
+1. **Infrastructure Layer** (OpenTofu + DigitalOcean)
 2. **Package Management Layer** (Helm)
 3. **Continuous Delivery Layer** (ArgoCD)
 4. **Observability Layer** (Grafana, Loki, Promtail)
@@ -32,21 +33,21 @@ flowchart TD
     subgraph "DigitalOcean"
         do --> vpc[VPC]
         do --> doks[DOKS Cluster]
-        
+
         subgraph "Kubernetes Cluster"
             doks --> np1[Primary Node Pool]
             doks --> np2[Monitoring Node Pool]
-            
+
             subgraph "System Namespaces"
                 ns1[argocd]
                 ns2[monitoring]
             end
-            
+
             subgraph "ArgoCD"
                 argo1[Deployment]
                 argo2[ApplicationSet]
             end
-            
+
             subgraph "Monitoring Stack"
                 graf[Grafana]
                 loki[Loki]
@@ -54,16 +55,16 @@ flowchart TD
             end
         end
     end
-    
+
     helmCharts --> |bootstrap| argo1
     argo1 --> |watches| k8sManifests
     argo2 --> |deploys| graf
     argo2 --> |deploys| loki
     argo2 --> |deploys| promtail
-    
+
     promtail --> |sends logs| loki
     loki --> |data source| graf
-    
+
     user((User)) --> |interacts| graf
     user --> |interacts| argo1
 ```
@@ -72,9 +73,10 @@ flowchart TD
 
 ### 1. Infrastructure Layer
 
-**Technology:** Terraform with DigitalOcean Provider
+**Technology:** OpenTofu with DigitalOcean Provider
 
 **Components:**
+
 - VPC for network isolation
 - DOKS (DigitalOcean Kubernetes Service) cluster
 - Two node pools:
@@ -84,6 +86,7 @@ flowchart TD
 - DigitalOcean Volumes for persistent storage
 
 **Design Considerations:**
+
 - Remote state storage using DigitalOcean Spaces or similar
 - Modular Terraform structure for reusability
 - Separate variable definitions for different environments
@@ -94,11 +97,13 @@ flowchart TD
 **Technology:** Helm
 
 **Components:**
+
 - Helm charts for ArgoCD
 - Helm charts for Grafana stack (Grafana, Loki, Promtail)
 - Custom values files for environment-specific configurations
 
 **Design Considerations:**
+
 - Use of official Helm repositories where possible
 - Versioned dependencies to ensure reproducibility
 - Structured values files with comments for documentation
@@ -109,12 +114,14 @@ flowchart TD
 **Technology:** ArgoCD
 
 **Components:**
+
 - ArgoCD server and components in dedicated namespace
 - Application definitions for managed workloads
 - Repository connections to Git sources
 - RBAC configuration for access control
 
 **Design Considerations:**
+
 - Bootstrap ArgoCD using Helm initially, then self-manage
 - Application of App-of-Apps pattern for scalability
 - Automated sync policies with health checks
@@ -125,11 +132,13 @@ flowchart TD
 **Technology:** Grafana, Loki, Promtail
 
 **Components:**
+
 - Grafana for visualization and dashboarding
 - Loki for log aggregation and querying
 - Promtail for log collection and forwarding
 
 **Design Considerations:**
+
 - Persistent storage for logs and dashboards
 - Node affinity rules to place monitoring components on dedicated nodes
 - Resource limits and requests for predictable performance
@@ -138,11 +147,13 @@ flowchart TD
 ## Implementation Workflow
 
 ### Phase 1: Repository Setup
+
 1. Create Git repository structure
 2. Define branching strategy and access controls
 3. Set up documentation templates
 
 ### Phase 2: Infrastructure Provisioning
+
 1. Develop Terraform modules for DigitalOcean resources
 2. Configure remote state storage
 3. Create deployment pipeline for infrastructure changes
@@ -150,18 +161,21 @@ flowchart TD
 5. Deploy Kubernetes cluster and node pools
 
 ### Phase 3: Core Services Deployment
+
 1. Bootstrap Kubernetes configuration (namespaces, RBAC)
 2. Deploy ArgoCD using Helm
 3. Configure ArgoCD to watch Git repository
 4. Create initial Application manifests
 
 ### Phase 4: Observability Stack
+
 1. Deploy Loki and Promtail using ArgoCD
 2. Deploy Grafana using ArgoCD
 3. Configure data sources and basic dashboards
 4. Set up log aggregation for system components
 
 ### Phase 5: Validation and Documentation
+
 1. Verify end-to-end functionality
 2. Document architecture and operational procedures
 3. Capture lessons learned and improvement areas
@@ -170,18 +184,9 @@ flowchart TD
 
 ```
 prototype-k8s/
-├── terraform/
-│   ├── modules/
-│   │   ├── vpc/
-│   │   ├── kubernetes/
-│   │   └── storage/
-│   ├── environments/
-│   │   ├── dev/
-│   │   └── staging/
-│   └── README.md
-├── kubernetes/
-│   ├── bootstrap/
-│   │   └── argocd/
+├── tofu/
+│   └── modules/
+├── k8s/
 │   ├── apps/
 │   │   ├── monitoring/
 │   │   │   ├── grafana/
@@ -192,30 +197,36 @@ prototype-k8s/
 ├── helm-values/
 │   ├── argocd/
 │   ├── grafana/
-│   ├── loki/
 │   └── promtail/
+├── scripts/
 ├── docs/
 │   ├── architecture.md
-│   ├── operations.md
-│   └── diagrams/
+│   └── operations.md
+├── .pre-commit-config.yaml
+├── .gitignore
+├── Makefile
 └── README.md
 ```
 
 ## Security Considerations
 
 ### Infrastructure Security
+
 - VPC isolation for network segmentation
 - Firewall rules to restrict access
 - Encrypted etcd for Kubernetes cluster
 - Regular security updates and patching
+- Pre-commit hooks for security scanning and validation
 
 ### Application Security
+
 - RBAC for Kubernetes and ArgoCD access control
 - Service account minimum privileges
 - Network policies for pod-to-pod communication
 - Resource quotas and limits
 
 ### Data Security
+
 - Encrypted persistent volumes
 - Backup and disaster recovery procedures
 - Secrets management (future enhancement)
@@ -224,18 +235,21 @@ prototype-k8s/
 ## Operational Considerations
 
 ### Monitoring and Alerting
+
 - System and application metrics collection
 - Log aggregation and analysis
 - Alert configuration for critical components
 - Dashboard creation for visibility
 
 ### Backup and Recovery
+
 - Kubernetes resource backups
 - Persistent volume snapshots
 - Configuration backups
 - Documented recovery procedures
 
 ### Scaling
+
 - Horizontal pod autoscaling for applications
 - Node autoscaling for worker pools
 - Resource allocation planning
@@ -244,15 +258,16 @@ prototype-k8s/
 
 | Component | Size | Monthly Cost (Approx.) |
 |-----------|------|------------------------|
-| DOKS Control Plane | Managed | $10 |
-| Worker Nodes (3) | s-4vcpu-8gb | $126 |
-| Monitoring Nodes (2) | c-4 | $168 |
+| DOKS Control Plane | Managed | $12 |
+| Worker Nodes (3) | s-4vcpu-8gb | $144 |
+| Monitoring Nodes (2) | c-4 | $192 |
 | Block Storage (80GB) | n/a | $8 |
-| Load Balancers (2) | n/a | $20 |
-| Spaces (for Terraform state) | 250GB | $5 |
-| **Total (Estimated)** | | **$337** |
+| Load Balancers (2) | n/a | $24 |
+| Container Registry | Basic | $5 |
+| Spaces (for OpenTofu state) | 250GB | $5 |
+| **Total (Estimated)** | | **$390** |
 
-*Note: Prices are based on DigitalOcean's rates as of March 2025 and may vary.*
+*Note: Prices are based on DigitalOcean's rates as of March 2024 and may vary.*
 
 ## Future Enhancements
 
@@ -262,6 +277,14 @@ prototype-k8s/
 - Multi-environment promotion workflow
 - Disaster recovery testing and validation
 - Performance optimization and cost reduction strategies
+- Integration with eBPF-based observability tools
+- Implementation of Pod Security Standards (PSS)
+- Zero-trust security model implementation
+- Cloud-native security scanning with Trivy
+- Cost optimization with Kubernetes Resource Report
+- Integration with OpenTelemetry for distributed tracing
+- Implementation of GitOps-based secret management
+- Automated compliance and security posture monitoring
 
 ## Success Criteria
 
