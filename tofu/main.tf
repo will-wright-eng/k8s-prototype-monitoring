@@ -40,13 +40,14 @@ resource "digitalocean_kubernetes_node_pool" "monitoring_pool" {
   tags = ["${var.cluster_name}-monitoring-node", var.environment]
 }
 
-# Create a project to organize resources (optional but recommended)
 resource "digitalocean_project" "project" {
   name        = "${var.cluster_name}-project"
   description = "A project to group ${var.environment} cluster resources"
   purpose     = "Demo/Learning"
   environment = var.environment
-  resources   = [digitalocean_kubernetes_cluster.cluster.urn]
+  resources = [
+    digitalocean_kubernetes_cluster.cluster.urn
+  ]
 }
 
 resource "digitalocean_container_registry" "registry" {
@@ -55,7 +56,6 @@ resource "digitalocean_container_registry" "registry" {
   region                 = var.region
 }
 
-# Add Kubernetes namespace resource
 resource "kubernetes_namespace" "namespace" {
   metadata {
     name = var.namespace

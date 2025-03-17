@@ -10,9 +10,60 @@ spec:
     targetRevision: 5.6.2
     chart: loki
     helm:
-      valueFiles:
-      # Update this path to match your actual repository and branch
-      - https://raw.githubusercontent.com/will-wright-eng/k8s-prototype-monitoring/main/helm-values/loki/values.yaml
+      values: |
+        loki:
+          auth_enabled: false
+
+          storage:
+            type: filesystem
+            filesystem:
+              chunks_directory: /var/loki/chunks
+              rules_directory: /var/loki/rules
+
+          # Configure Loki's components for scalability
+          backend:
+            replicas: 1
+
+          read:
+            replicas: 1
+
+          write:
+            replicas: 1
+
+          limits_config:
+            retention_period: 168h  # 7 days
+
+        # Node selector for monitoring nodes
+        nodeSelector:
+          node-type: monitoring
+
+        tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "monitoring"
+          effect: "NoSchedule"
+
+        # Affinity to ensure pods run on monitoring nodes
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: "node-type"
+                  operator: "In"
+                  values:
+                  - "monitoring"
+
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+
+        service:
+          type: ClusterIP
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
