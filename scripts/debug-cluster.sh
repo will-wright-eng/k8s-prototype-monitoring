@@ -2,10 +2,10 @@
 
 set -e
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SCRIPT_DIR="$REPO_ROOT/scripts"
+# shellcheck disable=SC1090
+source "${SCRIPT_DIR}/common.sh"
 
 print_status() {
     if [ $? -eq 0 ]; then

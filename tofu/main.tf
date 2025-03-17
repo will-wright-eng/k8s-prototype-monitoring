@@ -1,10 +1,7 @@
 resource "digitalocean_kubernetes_cluster" "cluster" {
-  name          = var.cluster_name
-  region        = var.region
-  version       = var.kubernetes_version
-  auto_upgrade  = false
-  surge_upgrade = true
-  ha            = false # Enable HA for production
+  name    = var.cluster_name
+  region  = var.region
+  version = var.kubernetes_version
 
   node_pool {
     name       = "${var.cluster_name}-worker-pool"
@@ -13,12 +10,36 @@ resource "digitalocean_kubernetes_cluster" "cluster" {
     labels = {
       environment = var.environment
       managed-by  = "terraform"
+      node-type   = "primary"
     }
     tags = ["${var.cluster_name}-node", var.environment]
   }
 
   tags = ["${var.cluster_name}", var.environment]
 }
+
+# Add a dedicated monitoring node pool
+resource "digitalocean_kubernetes_node_pool" "monitoring_pool" {
+  cluster_id = digitalocean_kubernetes_cluster.cluster.id
+  name       = "${var.cluster_name}-monitoring-pool"
+  size       = var.monitoring_node_size
+  node_count = var.monitoring_node_count
+
+  labels = {
+    environment = var.environment
+    managed-by  = "terraform"
+    node-type   = "monitoring" # This matches your Helm values
+  }
+
+  taint {
+    key    = "dedicated"
+    value  = "monitoring"
+    effect = "NoSchedule"
+  }
+
+  tags = ["${var.cluster_name}-monitoring-node", var.environment]
+}
+
 # Create a project to organize resources (optional but recommended)
 resource "digitalocean_project" "project" {
   name        = "${var.cluster_name}-project"

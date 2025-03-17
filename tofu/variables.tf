@@ -38,3 +38,13 @@ variable "namespace" {
   description = "Kubernetes namespace for the application"
   type        = string
 }
+
+variable "monitoring_node_size" {
+  description = "Size of the monitoring nodes"
+  type        = string
+}
+
+variable "monitoring_node_count" {
+  description = "Number of monitoring nodes"
+  type        = number
+}

@@ -1,7 +1,12 @@
 #!/bin/bash
 
-# shellcheck disable=SC2034
-TERRAFORM="tofu"
+# Set color variables
+export YELLOW='\033[1;33m'
+export GREEN='\033[0;32m'
+export RED='\033[0;31m'
+export NC='\033[0m' # No Color
+
+export TERRAFORM="tofu"
 
 check_do_token() {
     echo "Checking DO_TOKEN environment variable..."
