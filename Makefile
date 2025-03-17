@@ -103,24 +103,6 @@ backup-state: ## [Management] Backup Terraform state files
 	cp $(TOFU_DIR)/terraform.tfstate $(TOFU_DIR)/state-backups/terraform.tfstate.$(shell date +%Y%m%d-%H%M%S)
 	@echo "${GREEN}State backup created at $(TOFU_DIR)/state-backups/${NC}"
 
-destroy: check-requirements check-token ## [Management] Destroy all infrastructure (USE WITH CAUTION)
-	@echo "${RED}WARNING: This will destroy all infrastructure. This action is irreversible.${NC}"
-	@echo "${RED}Type 'yes' to confirm: ${NC}"
-	@read -p "" confirm; \
-	if [ "$$confirm" = "yes" ]; then \
-		echo "${YELLOW}Destroying infrastructure...${NC}"; \
-		cd $(TOFU_DIR) && tofu destroy -auto-approve -var="do_token=$(DO_TOKEN)"; \
-		echo "${GREEN}Infrastructure destroyed.${NC}"; \
-	else \
-		echo "${YELLOW}Destroy canceled.${NC}"; \
-	fi
-
-clean: ## [Management] Clean local files
-	@echo "${YELLOW}Cleaning local files...${NC}"
-	rm -f $(HOME)/.kube/config-$(ENVIRONMENT)
-	@echo "${YELLOW}Note: Main ~/.kube/config was preserved. Remove manually if needed.${NC}"
-	@echo "${GREEN}Local files cleaned.${NC}"
-
 #* ArgoCD management
 argo-install: ## [argocd] install ArgoCD in the cluster
 	kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
